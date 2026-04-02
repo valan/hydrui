@@ -7,6 +7,7 @@ import {
   ArrowUturnDownIcon,
   DocumentIcon,
   ExclamationCircleIcon,
+  InboxStackIcon,
   LinkIcon,
   MagnifyingGlassIcon,
   MinusCircleIcon,
@@ -29,6 +30,7 @@ import React, {
 import { ErrorBoundary } from "react-error-boundary";
 
 import { FileMetadata } from "@/api/types";
+import ArchiveDeleteModal from "@/components/modals/ArchiveDeleteModal/ArchiveDeleteModal";
 import BatchAutoTagModal from "@/components/modals/BatchAutoTagModal/BatchAutoTagModal";
 import ConfirmModal from "@/components/modals/ConfirmModal/ConfirmModal";
 import EditNotesModal from "@/components/modals/EditNotesModal/EditNotesModal";
@@ -89,6 +91,7 @@ const PageViewImpl: React.FC<PageViewProps> = ({ pageKey }) => {
       deleteFiles,
       undeleteFiles,
     },
+    archiveDeleteMode: showArchiveDeleteModal,
     selectedFilesByPage,
     activeFileByPage,
     fileIds,
@@ -148,7 +151,8 @@ const PageViewImpl: React.FC<PageViewProps> = ({ pageKey }) => {
     showBatchAutotagModal ||
     showConfirmDeleteModal ||
     showExpressionFilterModal ||
-    showExpressionSortModal;
+    showExpressionSortModal ||
+    showArchiveDeleteModal;
   const [renderView, setRenderView] = useState({
     firstIndex: 0,
     lastIndex: fileIds.length,
@@ -555,7 +559,6 @@ const PageViewImpl: React.FC<PageViewProps> = ({ pageKey }) => {
     };
   }, [
     pageKey,
-    setSelectedFiles,
     addToast,
     removeToast,
     updateToastProgress,
@@ -1079,6 +1082,16 @@ const PageViewImpl: React.FC<PageViewProps> = ({ pageKey }) => {
             label: "Undelete",
             icon: <ArrowUturnDownIcon />,
             onClick: () => undeleteFilesById(selectedFiles),
+          },
+          {
+            id: "review-archive-delete",
+            label: "Archive/Delete Filter",
+            icon: <InboxStackIcon />,
+            disabled: selectedFiles.length === 0,
+            onClick: () => {
+              const { openArchiveDeleteMode } = usePageStore.getState().actions;
+              openArchiveDeleteMode(selectedFiles);
+            },
           },
         ],
       },
@@ -1767,6 +1780,8 @@ const PageViewImpl: React.FC<PageViewProps> = ({ pageKey }) => {
           onClose={() => setShowExpressionSortModal(false)}
         />
       )}
+
+      {showArchiveDeleteModal && <ArchiveDeleteModal />}
     </div>
   );
 };

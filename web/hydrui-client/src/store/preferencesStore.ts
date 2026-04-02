@@ -33,6 +33,32 @@ const DEFAULT_AUTOPREVIEW_FILE_TYPES: HydrusFileType[] = [
 
 const DEFAULT_THUMBNAIL_SIZE = 100;
 
+// Keyboard shortcuts configuration types
+export interface ArchiveDeleteModalShortcuts {
+  archive: string;
+  delete: string;
+  skip: string;
+  undo: string;
+}
+
+export interface KeyboardShortcutConfig {
+  archiveDeleteModal: ArchiveDeleteModalShortcuts;
+  // Future categories can be added here:
+  // global?: { ... };
+  // fileViewer?: { ... };
+  // pageView?: { ... };
+}
+
+// Default keyboard shortcuts
+const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcutConfig = {
+  archiveDeleteModal: {
+    archive: "a",
+    delete: "d",
+    skip: "s",
+    undo: "u",
+  },
+};
+
 interface TagColorPreferences {
   namespaceColors: Record<string, string>;
   defaultNamespacedColor: string;
@@ -49,6 +75,7 @@ interface PreferencesState {
   useVirtualViewport: boolean;
   allowTokenPassing: boolean;
   eagerLoadThreshold: number;
+  keyboardShortcuts: KeyboardShortcutConfig;
   actions: {
     setNamespaceColor: (namespace: string, color: string) => void;
     clearNamespaceColor: (namespace: string) => void;
@@ -80,6 +107,12 @@ interface PreferencesState {
     ) => void;
     deleteFileTypeRendererOverride: (filetype: HydrusFileType) => void;
     clearFileTypeRendererOverrides: () => void;
+    setKeyboardShortcut: (
+      category: keyof KeyboardShortcutConfig,
+      action: keyof KeyboardShortcutConfig[typeof category],
+      key: string,
+    ) => void;
+    resetKeyboardShortcuts: () => void;
   };
 }
 
@@ -119,6 +152,9 @@ export const usePreferencesStore = create<PreferencesState>()(
 
       // Override the default renderer for a given mimetype
       fileTypeRendererOverride: new Map(),
+
+      // Keyboard shortcuts configuration
+      keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
 
       actions: {
         setNamespaceColor: (namespace: string, color: string) => {
@@ -320,6 +356,28 @@ export const usePreferencesStore = create<PreferencesState>()(
         clearFileTypeRendererOverrides: () => {
           set({ fileTypeRendererOverride: new Map() });
         },
+
+        setKeyboardShortcut: (
+          category: keyof KeyboardShortcutConfig,
+          action: string,
+          key: string,
+        ) => {
+          set((state) => ({
+            keyboardShortcuts: {
+              ...state.keyboardShortcuts,
+              [category]: {
+                ...state.keyboardShortcuts[category],
+                [action]: key,
+              },
+            },
+          }));
+        },
+
+        resetKeyboardShortcuts: () => {
+          set({
+            keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
+          });
+        },
       },
     }),
     {
@@ -336,6 +394,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         fileTypeViewerOverride: state.fileTypeViewerOverride,
         fileTypePreviewerOverride: state.fileTypePreviewerOverride,
         fileTypeRendererOverride: state.fileTypeRendererOverride,
+        keyboardShortcuts: state.keyboardShortcuts,
       }),
       migrate: (persistedState: unknown, version: number) => {
         if (version === 0) {

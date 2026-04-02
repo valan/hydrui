@@ -1,0 +1,170 @@
+.archive-delete-modal-container {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-delete-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--color-gray-900);
+}
+
+.archive-delete-modal-progress {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-300);
+}
+
+.archive-delete-modal-close-button {
+  color: var(--color-gray-400);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.archive-delete-modal-close-button:hover {
+  color: var(--color-white);
+}
+
+.archive-delete-modal-medium-icon {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.archive-delete-modal-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.archive-delete-modal-nav-button {
+  position: absolute;
+  padding: 0.5rem;
+  color: var(--color-gray-400);
+  background-color: rgba(17, 24, 39, 0.5);
+  border-radius: 9999px;
+  border: none;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.archive-delete-modal-nav-button:hover:not(:disabled) {
+  color: var(--color-white);
+}
+
+.archive-delete-modal-nav-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.archive-delete-modal-prev-button {
+  left: 1rem;
+}
+
+.archive-delete-modal-next-button {
+  right: 1rem;
+}
+
+.archive-delete-modal-large-icon {
+  height: 2rem;
+  width: 2rem;
+}
+
+.archive-delete-modal-viewer-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-delete-modal-actions {
+  align-items: center;
+  background-color: var(--color-gray-900);
+  border-top: 1px solid var(--color-gray-700);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.archive-delete-modal-archive-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-green-600);
+}
+
+.archive-delete-modal-archive-button:hover:not(:disabled) {
+  background-color: var(--color-green-700);
+}
+
+.archive-delete-modal-delete-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-red-600);
+}
+
+.archive-delete-modal-delete-button:hover:not(:disabled) {
+  background-color: var(--color-red-700);
+}
+
+.archive-delete-modal-skip-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.archive-delete-modal-button-icon {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+/* Status indicator */
+.archive-delete-modal-status {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+  background-color: var(--color-gray-900);
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-archive {
+  background-color: var(--color-green-900);
+  color: var(--color-green-300);
+}
+
+.status-delete {
+  background-color: var(--color-red-900);
+  color: var(--color-red-300);
+}
+
+/* Undo button */
+.archive-delete-modal-undo-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Pending indicator in progress */
+.archive-delete-modal-progress .pending-count {
+  color: var(--color-yellow-400);
+  font-weight: 500;
+}

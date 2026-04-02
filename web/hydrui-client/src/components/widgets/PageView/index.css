@@ -103,6 +103,14 @@
   cursor: pointer;
   background-color: var(--color-gray-700);
   margin: 0 auto;
+  /* Reset default button styles */
+  padding: 0;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  /* Remove default button outline and use custom focus styles */
+  outline: none;
 }
 
 .file-item-selected {

@@ -8,6 +8,7 @@ import { FocusTrap } from "focus-trap-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
+import ShortcutInput from "@/components/inputs/ShortcutInput/ShortcutInput";
 import EditColorModal from "@/components/modals/EditColorModal/EditColorModal";
 import FileTypeInput from "@/components/widgets/FileTypeInput/FileTypeInput";
 import PushButton from "@/components/widgets/PushButton/PushButton";
@@ -27,7 +28,13 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-type TabType = "api" | "general" | "pageview" | "fileview" | "models";
+type TabType =
+  | "api"
+  | "general"
+  | "pageview"
+  | "fileview"
+  | "models"
+  | "shortcuts";
 
 function SettingsModal({ onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("general");
@@ -127,6 +134,16 @@ function SettingsModal({ onClose }: SettingsModalProps) {
                 >
                   Models
                 </button>
+                <button
+                  onClick={() => setActiveTab("shortcuts")}
+                  className={`settings-modal-tab ${
+                    activeTab === "shortcuts"
+                      ? "settings-modal-tab-active"
+                      : "settings-modal-tab-inactive"
+                  }`}
+                >
+                  Shortcuts
+                </button>
               </div>
             </div>
 
@@ -192,6 +209,7 @@ function SettingsModal({ onClose }: SettingsModalProps) {
                   />
                 </ErrorBoundary>
               )}
+              {activeTab === "shortcuts" && <ShortcutsSettings />}
             </div>
             <div className="settings-modal-buttons">
               <PushButton onClick={onClose} variant="secondary">
@@ -409,7 +427,7 @@ function FileTypesEditor() {
                 className="settings-modal-file-type-remove-button"
                 title="Disable auto-preview for mimetype"
               >
-                <MinusIcon className="h-4 w-4" />
+                <MinusIcon className="icon-sm" />
               </button>
             </li>
           ))}
@@ -599,7 +617,7 @@ const TagColorsEditor: React.FC<{
                 className="settings-modal-namespace-colors-remove-button"
                 title="Remove color from tag namespace"
               >
-                <MinusIcon className="h-4 w-4" />
+                <MinusIcon className="icon-sm" />
               </button>
             </li>
           ))}
@@ -906,6 +924,74 @@ function ModelsManager({ setShowAddTagsModelModal }: ModelsManagerProps) {
               ></ArrowTopRightOnSquareIcon>
             </div>
           </a>
+        </div>
+      </fieldset>
+    </>
+  );
+}
+
+function ShortcutsSettings() {
+  const {
+    keyboardShortcuts,
+    actions: { setKeyboardShortcut, resetKeyboardShortcuts },
+  } = usePreferencesStore();
+
+  return (
+    <>
+      <fieldset className="settings-form">
+        <legend>Info</legend>
+        <p>
+          Customize keyboard shortcuts for the Archive/Delete modal. Click on a
+          shortcut key to change it. Press Escape to cancel, or Backspace/Delete
+          to clear.
+        </p>
+      </fieldset>
+      <fieldset>
+        <legend>Archive/Delete Modal</legend>
+        <div className="settings-shortcuts-list">
+          <div className="settings-shortcut-row">
+            <label className="settings-shortcut-label">Archive File</label>
+            <ShortcutInput
+              value={keyboardShortcuts.archiveDeleteModal.archive}
+              onChange={(key) =>
+                setKeyboardShortcut("archiveDeleteModal", "archive", key)
+              }
+            />
+          </div>
+          <div className="settings-shortcut-row">
+            <label className="settings-shortcut-label">Delete File</label>
+            <ShortcutInput
+              value={keyboardShortcuts.archiveDeleteModal.delete}
+              onChange={(key) =>
+                setKeyboardShortcut("archiveDeleteModal", "delete", key)
+              }
+            />
+          </div>
+          <div className="settings-shortcut-row">
+            <label className="settings-shortcut-label">Skip File</label>
+            <ShortcutInput
+              value={keyboardShortcuts.archiveDeleteModal.skip}
+              onChange={(key) =>
+                setKeyboardShortcut("archiveDeleteModal", "skip", key)
+              }
+            />
+          </div>
+          <div className="settings-shortcut-row">
+            <label className="settings-shortcut-label">
+              Undo Pending Operations
+            </label>
+            <ShortcutInput
+              value={keyboardShortcuts.archiveDeleteModal.undo}
+              onChange={(key) =>
+                setKeyboardShortcut("archiveDeleteModal", "undo", key)
+              }
+            />
+          </div>
+        </div>
+        <div className="settings-shortcuts-actions">
+          <PushButton variant="danger" onClick={resetKeyboardShortcuts}>
+            Reset to Defaults
+          </PushButton>
         </div>
       </fieldset>
     </>

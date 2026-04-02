@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { FileMetadata, FileRelationshipPair, Page } from "@/api/types";
+import type { FileMetadata, FileRelationshipPair, Page } from "@/api/types";
 import { FileRelationship } from "@/constants/relationships";
 import { client, useApiStore } from "@/store/apiStore";
 import { useSearchStore } from "@/store/searchStore";
@@ -15,6 +15,19 @@ import { useToastStore } from "./toastStore";
 export const SEARCH_PAGE_KEY = "hydrui-search-tab";
 
 export type PageType = "search" | "hydrus" | "virtual";
+
+// Interface for archive/delete mode
+export interface ArchiveDeleteMode {
+  active: boolean;
+  fileIds: number[];
+  currentIndex: number;
+}
+
+// Interface for pending archive/delete operations
+export interface PendingOperation {
+  fileId: number;
+  operation: "archive" | "delete";
+}
 
 // Interface for virtual pages
 export interface VirtualPage {
@@ -57,6 +70,9 @@ interface PageState extends PersistedState {
   lastRequestId: number;
   currentAbortController: AbortController | null;
   metadataLoadController: MetadataLoadController | null;
+  archiveDeleteMode: ArchiveDeleteMode;
+  pendingArchiveDeleteOperations: PendingOperation[];
+  isProcessingArchiveDelete: boolean;
   // Actions
   actions: {
     setPage: (pageKey: string, type: PageType) => Promise<void>;
@@ -102,6 +118,18 @@ interface PageState extends PersistedState {
       updates: Partial<VirtualPage>,
     ) => Promise<void>;
     setIsLoadingPaused: (isLoadingPaused: boolean) => void;
+    openArchiveDeleteMode: (fileIds: number[]) => void;
+    closeArchiveDeleteMode: () => void;
+    nextArchiveDeleteImage: () => void;
+    previousArchiveDeleteImage: () => void;
+    removeFromArchiveDeleteMode: (fileId: number) => void;
+    addPendingOperation: (
+      fileId: number,
+      operation: "archive" | "delete",
+    ) => void;
+    removePendingOperation: (fileId: number) => void;
+    clearPendingOperations: () => void;
+    executePendingOperations: () => Promise<void>;
   };
 }
 
@@ -450,6 +478,13 @@ export const usePageStore = create<PageState>()(
         lastRequestId: 0,
         currentAbortController: null,
         metadataLoadController: null,
+        archiveDeleteMode: {
+          active: false,
+          fileIds: [],
+          currentIndex: 0,
+        },
+        pendingArchiveDeleteOperations: [],
+        isProcessingArchiveDelete: false,
 
         actions: {
           fetchPages: async () => {
@@ -1079,6 +1114,205 @@ export const usePageStore = create<PageState>()(
             set({ isLoadingPaused });
             if (!isLoadingPaused) {
               get().metadataLoadController?.wakeup();
+            }
+          },
+
+          openArchiveDeleteMode: (fileIds: number[]) => {
+            set({
+              archiveDeleteMode: {
+                active: true,
+                fileIds,
+                currentIndex: 0,
+              },
+            });
+          },
+
+          closeArchiveDeleteMode: () => {
+            set({
+              archiveDeleteMode: {
+                active: false,
+                fileIds: [],
+                currentIndex: 0,
+              },
+            });
+          },
+
+          nextArchiveDeleteImage: () => {
+            set((state) => {
+              const { archiveDeleteMode } = state;
+              if (
+                !archiveDeleteMode.active ||
+                archiveDeleteMode.fileIds.length === 0
+              ) {
+                return {};
+              }
+              const nextIndex = Math.min(
+                archiveDeleteMode.currentIndex + 1,
+                archiveDeleteMode.fileIds.length - 1,
+              );
+              return {
+                archiveDeleteMode: {
+                  ...archiveDeleteMode,
+                  currentIndex: nextIndex,
+                },
+              };
+            });
+          },
+
+          previousArchiveDeleteImage: () => {
+            set((state) => {
+              const { archiveDeleteMode } = state;
+              if (
+                !archiveDeleteMode.active ||
+                archiveDeleteMode.fileIds.length === 0
+              ) {
+                return {};
+              }
+              const prevIndex = Math.max(archiveDeleteMode.currentIndex - 1, 0);
+              return {
+                archiveDeleteMode: {
+                  ...archiveDeleteMode,
+                  currentIndex: prevIndex,
+                },
+              };
+            });
+          },
+
+          removeFromArchiveDeleteMode: (fileId: number) => {
+            set((state) => {
+              const { archiveDeleteMode } = state;
+              if (!archiveDeleteMode.active) {
+                return {};
+              }
+              const newFileIds = archiveDeleteMode.fileIds.filter(
+                (id) => id !== fileId,
+              );
+              if (newFileIds.length === 0) {
+                return {
+                  archiveDeleteMode: {
+                    active: false,
+                    fileIds: [],
+                    currentIndex: 0,
+                  },
+                };
+              }
+              const newCurrentIndex = Math.min(
+                archiveDeleteMode.currentIndex,
+                newFileIds.length - 1,
+              );
+              return {
+                archiveDeleteMode: {
+                  active: true,
+                  fileIds: newFileIds,
+                  currentIndex: newCurrentIndex,
+                },
+              };
+            });
+          },
+
+          addPendingOperation: (
+            fileId: number,
+            operation: "archive" | "delete",
+          ) => {
+            set((state) => {
+              // Remove any existing operation for this file, then add the new one
+              const filtered = state.pendingArchiveDeleteOperations.filter(
+                (op) => op.fileId !== fileId,
+              );
+              return {
+                pendingArchiveDeleteOperations: [
+                  ...filtered,
+                  { fileId, operation },
+                ],
+              };
+            });
+          },
+
+          removePendingOperation: (fileId: number) => {
+            set((state) => ({
+              pendingArchiveDeleteOperations:
+                state.pendingArchiveDeleteOperations.filter(
+                  (op) => op.fileId !== fileId,
+                ),
+            }));
+          },
+
+          clearPendingOperations: () => {
+            set({ pendingArchiveDeleteOperations: [] });
+          },
+
+          executePendingOperations: async () => {
+            const { pendingArchiveDeleteOperations, actions } = get();
+            if (pendingArchiveDeleteOperations.length === 0) return;
+
+            set({ isProcessingArchiveDelete: true });
+
+            const archiveIds = pendingArchiveDeleteOperations
+              .filter((op) => op.operation === "archive")
+              .map((op) => op.fileId);
+
+            const deleteIds = pendingArchiveDeleteOperations
+              .filter((op) => op.operation === "delete")
+              .map((op) => op.fileId);
+
+            let successCount = 0;
+
+            try {
+              // Execute archive operations in batch
+              if (archiveIds.length > 0) {
+                try {
+                  await client.archiveFiles({ file_ids: archiveIds });
+                  successCount += archiveIds.length;
+                  await actions.refreshFileMetadata(archiveIds);
+                } catch (error) {
+                  useToastStore
+                    .getState()
+                    .actions.addToast(
+                      `Error archiving ${archiveIds.length} files: ${error instanceof Error ? error.message : String(error)}`,
+                      "error",
+                    );
+                }
+              }
+
+              // Execute delete operations in batch
+              if (deleteIds.length > 0) {
+                try {
+                  await client.deleteFiles({ file_ids: deleteIds });
+                  successCount += deleteIds.length;
+                  await actions.refreshFileMetadata(deleteIds);
+                } catch (error) {
+                  useToastStore
+                    .getState()
+                    .actions.addToast(
+                      `Error deleting ${deleteIds.length} files: ${error instanceof Error ? error.message : String(error)}`,
+                      "error",
+                    );
+                }
+              }
+
+              // Show summary toast
+              if (successCount > 0) {
+                const summary: string[] = [];
+                if (archiveIds.length > 0)
+                  summary.push(`archived ${archiveIds.length}`);
+                if (deleteIds.length > 0)
+                  summary.push(`deleted ${deleteIds.length}`);
+                useToastStore
+                  .getState()
+                  .actions.addToast(
+                    `Successfully ${summary.join(" and ")}`,
+                    "success",
+                  );
+              }
+
+              // Clear pending operations and close modal
+              set({
+                pendingArchiveDeleteOperations: [],
+                isProcessingArchiveDelete: false,
+              });
+              actions.closeArchiveDeleteMode();
+            } finally {
+              set({ isProcessingArchiveDelete: false });
             }
           },
         },
