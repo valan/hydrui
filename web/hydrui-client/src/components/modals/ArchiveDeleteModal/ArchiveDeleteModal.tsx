@@ -355,10 +355,10 @@ const ArchiveDeleteModal: React.FC = () => {
             </PushButton>
             {pendingArchiveDeleteOperations.length > 0 && (
               <PushButton
-                onClick={handleUndo}
-                variant="secondary"
+                onClick={handleClose}
+                variant="primary"
                 disabled={isProcessingArchiveDelete}
-                className="archive-delete-modal-undo-button"
+                className="archive-delete-modal-apply-all-button"
               >
                 <Square3Stack3DIcon className="archive-delete-modal-button-icon" />
                 Apply&nbsp;All

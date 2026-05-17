@@ -163,6 +163,13 @@
   gap: 0.5rem;
 }
 
+/* Apply All button */
+.archive-delete-modal-apply-all-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* Pending indicator in progress */
 .archive-delete-modal-progress .pending-count {
   color: var(--color-yellow-400);

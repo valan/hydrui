@@ -425,6 +425,25 @@ describe("ArchiveDeleteModal", () => {
       expect(screen.getByText("Apply All")).toBeInTheDocument();
     });
 
+    it("should open confirmation dialog when Apply All is clicked", async () => {
+      archiveDeleteModeState = {
+        active: true,
+        fileIds: [1, 2, 3],
+        currentIndex: 0,
+      };
+      pendingOperationsState = [{ fileId: 1, operation: "archive" }];
+      loadedFilesState = { 1: { file_id: 1, mime: "image/jpeg" } };
+      fileIdToIndexState = new Map([[1, 0]]);
+
+      render(<ArchiveDeleteModal />);
+
+      // Click Apply All
+      fireEvent.click(screen.getByText("Apply All"));
+
+      // Confirmation dialog should appear
+      expect(screen.getByText("Apply Pending Changes?")).toBeInTheDocument();
+    });
+
     it("should not show Apply All button when there are no pending operations", () => {
       archiveDeleteModeState = {
         active: true,
