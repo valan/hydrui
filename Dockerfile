@@ -9,7 +9,8 @@ WORKDIR /work
 COPY --from=npmbuild /work/internal/webdata/*.pack /work/internal/webdata
 RUN go build -o /hydrui-server ./cmd/hydrui-server
 
-FROM scratch
+FROM alpine:latest
+RUN apk add --no-cache ffmpeg ca-certificates tzdata
 ENV HYDRUI_LISTEN_INTERNAL=:5050
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD ["/hydrui-server", "healthcheck", "http://localhost:5050/healthz?check_hydrus"]
 COPY --from=gobuild /hydrui-server /hydrui-server

@@ -3,76 +3,83 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.hydrui;
-  inherit (lib)
+  inherit
+    (lib)
     types
     mkOption
     mkEnableOption
     mkIf
     optionals
     ;
-  boolStr = b: if b == true then "true" else "false";
-  args = [
-    "-nogui=true"
-    "-server-mode=${boolStr cfg.serverMode}"
-    "-acme=${boolStr cfg.acme}"
-  ]
-  ++ optionals (cfg.port != null) [
-    "-listen=${toString cfg.bindAddress}:${toString cfg.port}"
-  ]
-  ++ optionals (cfg.socket != null) [
-    "-socket=${cfg.socket}"
-    "-listen="
-  ]
-  ++ optionals (cfg.hydrusUrl != null) [
-    "-hydrus-url=${cfg.hydrusUrl}"
-  ]
-  ++ optionals (cfg.hydrusApiKeyFile != null) [
-    "-hydrus-api-key-file=$CREDENTIALS_DIRECTORY/hydrus-api-key"
-  ]
-  ++ optionals (cfg.htpasswdFile != null) [
-    "-htpasswd=$CREDENTIALS_DIRECTORY/htpasswd"
-  ]
-  ++ optionals (cfg.allowReport != null) [
-    "-allow-bug-report=${boolStr cfg.allowReport}"
-  ]
-  ++ optionals cfg.noAuth [
-    "-no-auth=true"
-  ]
-  # # Hydrui Server will create the secret file if it doesn't exist.
-  # ++ optionals (cfg.serverMode && cfg.secretFile == null) [
-  #   "-secret-file"
-  #   "$STATE_DIRECTORY/secret"
-  # ]
-  # If the user provides a secret file, we pass it in through credentials.
-  ++ optionals (cfg.serverMode && cfg.secretFile != null) [
-    "-secret-file=$CREDENTIALS_DIRECTORY/secret"
-  ];
-in
-{
+  boolStr = b:
+    if b == true
+    then "true"
+    else "false";
+  args =
+    [
+      "-nogui=true"
+      "-server-mode=${boolStr cfg.serverMode}"
+      "-acme=${boolStr cfg.acme}"
+    ]
+    ++ optionals (cfg.port != null) [
+      "-listen=${toString cfg.bindAddress}:${toString cfg.port}"
+    ]
+    ++ optionals (cfg.socket != null) [
+      "-socket=${cfg.socket}"
+      "-listen="
+    ]
+    ++ optionals (cfg.hydrusUrl != null) [
+      "-hydrus-url=${cfg.hydrusUrl}"
+    ]
+    ++ optionals (cfg.hydrusApiKeyFile != null) [
+      "-hydrus-api-key-file=$CREDENTIALS_DIRECTORY/hydrus-api-key"
+    ]
+    ++ optionals (cfg.htpasswdFile != null) [
+      "-htpasswd=$CREDENTIALS_DIRECTORY/htpasswd"
+    ]
+    ++ optionals (cfg.allowReport != null) [
+      "-allow-bug-report=${boolStr cfg.allowReport}"
+    ]
+    ++ optionals cfg.noAuth [
+      "-no-auth=true"
+    ]
+    # # Hydrui Server will create the secret file if it doesn't exist.
+    # ++ optionals (cfg.serverMode && cfg.secretFile == null) [
+    #   "-secret-file"
+    #   "$STATE_DIRECTORY/secret"
+    # ]
+    # If the user provides a secret file, we pass it in through credentials.
+    ++ optionals (cfg.serverMode && cfg.secretFile != null) [
+      "-secret-file=$CREDENTIALS_DIRECTORY/secret"
+    ];
+in {
   options = {
     services.hydrui = {
       enable = mkEnableOption "Hydrui Server";
 
       # Module options
-      package = lib.mkPackageOption pkgs "hydrui-server" { };
-      openFirewall = mkEnableOption "" // {
-        description = "Whether to automatically open the necessary ports in the firewall.";
-        default = true;
-      };
+      package = lib.mkPackageOption pkgs "hydrui-server" {};
+      openFirewall =
+        mkEnableOption ""
+        // {
+          description = "Whether to automatically open the necessary ports in the firewall.";
+          default = true;
+        };
 
       # Hydrui Server options
-      serverMode = mkEnableOption "" // {
-        description = ''
-          Enable Hydrui's server mode, as opposed to the default client-only mode.
+      serverMode =
+        mkEnableOption ""
+        // {
+          description = ''
+            Enable Hydrui's server mode, as opposed to the default client-only mode.
 
-          When enabled, Hydrui Server will act as a proxy to the upstream hydrus client.
-          The API credentials will need to be specified directly to Hydrui Server. When
-          this value is set, hydrusUrl and hydrusApiKeyFile must be set.
-        '';
-      };
+            When enabled, Hydrui Server will act as a proxy to the upstream hydrus client.
+            The API credentials will need to be specified directly to Hydrui Server. When
+            this value is set, hydrusUrl and hydrusApiKeyFile must be set.
+          '';
+        };
       acme = mkEnableOption "automatic TLS with ACME";
       bindAddress = mkOption {
         type = types.str;
@@ -109,7 +116,10 @@ in
       };
       allowReport = mkOption {
         type = types.nullOr types.bool;
-        default = if cfg.serverMode then true else null;
+        default =
+          if cfg.serverMode
+          then true
+          else null;
         description = ''
           Allow users to submit issue reports to the Hydrui Mothership. You can
           disable this to improve privacy if you don't think you will ever use
@@ -175,25 +185,25 @@ in
       }
     ];
     warnings =
-      if cfg.serverMode == true && cfg.htpasswdFile == null && !cfg.noAuth then
-        [
-          ''
-            You have enabled server mode, but not provided an htpasswd file.
-            This will result in the insecure default credentials of admin:admin being used.
-          ''
-        ]
-      else
-        [ ];
-    nixpkgs.overlays = [ (import ./overlay) ];
-    environment.systemPackages = [ cfg.package ];
+      if cfg.serverMode == true && cfg.htpasswdFile == null && !cfg.noAuth
+      then [
+        ''
+          You have enabled server mode, but not provided an htpasswd file.
+          This will result in the insecure default credentials of admin:admin being used.
+        ''
+      ]
+      else [];
+    nixpkgs.overlays = [(import ./overlay)];
+    environment.systemPackages = [cfg.package];
     systemd.services.hydrui-server = {
       description = "Hydrui Server";
-      documentation = [ "https://hydrui.dev" ];
-      wantedBy = [ "multi-user.target" ];
-      wants = [ "network-online.target" ];
+      documentation = ["https://hydrui.dev"];
+      wantedBy = ["multi-user.target"];
+      wants = ["network-online.target"];
       after = [
         "network-online.target"
       ];
+      path = [pkgs.ffmpeg];
       serviceConfig = {
         DynamicUser = true;
         ExecStart = "${cfg.package}/bin/hydrui-server ${lib.concatStringsSep " " args}";
@@ -237,7 +247,7 @@ in
       };
     };
     networking.firewall = mkIf (cfg.openFirewall && cfg.port != null) {
-      allowedTCPPorts = [ cfg.port ];
+      allowedTCPPorts = [cfg.port];
     };
   };
 }

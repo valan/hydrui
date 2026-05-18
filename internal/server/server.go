@@ -9,6 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
+	"github.com/hydrui/hydrui/internal/hls"
+	"github.com/hydrui/hydrui/internal/pack"
+	"golang.org/x/crypto/acme/autocert"
 	"html/template"
 	"io"
 	"io/fs"
@@ -18,12 +23,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
-	"github.com/hydrui/hydrui/internal/pack"
-
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 //go:embed index.html.tmpl
@@ -151,6 +150,8 @@ type Server struct {
 func New(config Config, clientData *pack.Pack) *Server {
 	externalMux := http.NewServeMux()
 	internalMux := http.NewServeMux()
+
+	hlsManager := hls.NewManager(1 * time.Minute)
 
 	jsPath, cssPath, err := findAssetFiles(clientData)
 	if err != nil {
@@ -335,11 +336,44 @@ func New(config Config, clientData *pack.Pack) *Server {
 			}
 
 			proxyURL := config.HydrusURL + strings.TrimPrefix(r.URL.Path, "/hydrus")
-			if r.URL.RawQuery != "" || r.URL.ForceQuery {
-				proxyURL += "?" + r.URL.RawQuery
+
+			q := r.URL.Query()
+			shouldTranscode := q.Get("transcode") == "hls"
+			if shouldTranscode {
+				q.Del("transcode")
 			}
+			rawQuery := q.Encode()
+
+			if rawQuery != "" || r.URL.ForceQuery {
+				proxyURL += "?" + rawQuery
+			}
+
+			if shouldTranscode {
+				// We need the authenticated URL to pass to ffmpeg
+				authURL := proxyURL
+				if !strings.Contains(authURL, "?") {
+					authURL += "?"
+				} else {
+					authURL += "&"
+				}
+				authURL += "Hydrus-Client-API-Access-Key=" + config.HydrusAPIKey
+
+				session, err := hlsManager.StartSession(r.Context(), authURL, r.Header)
+				if err != nil {
+					log.Printf("Failed to start HLS session: %v", err)
+					http.Error(w, "Failed to start HLS session", http.StatusInternalServerError)
+					return
+				}
+				// return redirect to the newly created session's m3u8
+				http.Redirect(w, r, fmt.Sprintf("/api/hls/%s/stream.m3u8", session.ID), http.StatusFound)
+				return
+			}
+
 			proxyRequest(w, r.Method, proxyURL, r.Body, r.Header)
 		})
+
+		// HLS proxy handler
+		externalMux.HandleFunc("/api/hls/", hlsManager.HandleHTTP)
 
 		// One-time-proxy handler. Used for hand-off to Photopea.
 		bridges := sync.Map{}

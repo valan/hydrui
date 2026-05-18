@@ -76,6 +76,7 @@ interface PreferencesState {
   allowTokenPassing: boolean;
   eagerLoadThreshold: number;
   keyboardShortcuts: KeyboardShortcutConfig;
+  videoTranscoder: "ogv" | "hls";
   actions: {
     setNamespaceColor: (namespace: string, color: string) => void;
     clearNamespaceColor: (namespace: string) => void;
@@ -113,6 +114,7 @@ interface PreferencesState {
       key: string,
     ) => void;
     resetKeyboardShortcuts: () => void;
+    setVideoTranscoder: (transcoder: "ogv" | "hls") => void;
   };
 }
 
@@ -155,6 +157,7 @@ export const usePreferencesStore = create<PreferencesState>()(
 
       // Keyboard shortcuts configuration
       keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
+      videoTranscoder: "hls",
 
       actions: {
         setNamespaceColor: (namespace: string, color: string) => {
@@ -378,6 +381,10 @@ export const usePreferencesStore = create<PreferencesState>()(
             keyboardShortcuts: { ...DEFAULT_KEYBOARD_SHORTCUTS },
           });
         },
+
+        setVideoTranscoder: (transcoder: "ogv" | "hls") => {
+          set({ videoTranscoder: transcoder });
+        },
       },
     }),
     {
@@ -391,6 +398,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         useVirtualViewport: state.useVirtualViewport,
         allowTokenPassing: state.allowTokenPassing,
         eagerLoadThreshold: state.eagerLoadThreshold,
+        videoTranscoder: state.videoTranscoder,
         fileTypeViewerOverride: state.fileTypeViewerOverride,
         fileTypePreviewerOverride: state.fileTypePreviewerOverride,
         fileTypeRendererOverride: state.fileTypeRendererOverride,

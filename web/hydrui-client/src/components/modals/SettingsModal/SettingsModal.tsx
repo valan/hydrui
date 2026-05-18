@@ -393,8 +393,40 @@ function FileViewSettings({
   setEditingViewerOverrideFileType: (fileType: HydrusFileType) => void;
   setEditingPreviewerOverrideFileType: (fileType: HydrusFileType) => void;
 }) {
+  const {
+    videoTranscoder,
+    actions: { setVideoTranscoder },
+  } = usePreferencesStore();
+
   return (
     <>
+      <fieldset className="settings-form">
+        <legend>Video Playback</legend>
+        <p>Choose how unsupported video files are handled in the browser.</p>
+        <div>
+          <label>
+            <input
+              type="radio"
+              value="hls"
+              checked={videoTranscoder === "hls"}
+              onChange={() => setVideoTranscoder("hls")}
+            />{" "}
+            Server-side FFmpeg (HLS) - Recommended, supports seeking smoothly.
+          </label>
+        </div>
+        <div>
+          <label>
+            <input
+              type="radio"
+              value="ogv"
+              checked={videoTranscoder === "ogv"}
+              onChange={() => setVideoTranscoder("ogv")}
+            />{" "}
+            OGV.js (Client-side WebAssembly) - Old behavior, downloads whole
+            file.
+          </label>
+        </div>
+      </fieldset>
       <FileTypesEditor />
       <ViewerOverride edit={setEditingViewerOverrideFileType} />
       <PreviewerOverride edit={setEditingPreviewerOverrideFileType} />

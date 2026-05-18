@@ -6,31 +6,27 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      ...
-    }:
-    let
-      overlay = import ./nix/overlay;
-      module = import ./nix/module.nix;
-    in
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    ...
+  }: let
+    overlay = import ./nix/overlay;
+    module = import ./nix/module.nix;
+  in
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
+      system: let
         pkgs = (import nixpkgs) {
           inherit system;
-          overlays = [ overlay ];
+          overlays = [overlay];
         };
         inherit (pkgs) hydrui-server hydrui-api;
-        format = pkgs.callPackage ./nix/format.nix { };
-        gen-module-options = pkgs.callPackage ./nix/gen-module-options.nix { inherit self nixpkgs; };
-        tests-docker-compose = pkgs.callPackage ./nix/tests/docker-compose.nix { };
-        tests-kubernetes = pkgs.callPackage ./nix/tests/kubernetes.nix { };
-      in
-      {
+        format = pkgs.callPackage ./nix/format.nix {};
+        gen-module-options = pkgs.callPackage ./nix/gen-module-options.nix {inherit self nixpkgs;};
+        tests-docker-compose = pkgs.callPackage ./nix/tests/docker-compose.nix {};
+        tests-kubernetes = pkgs.callPackage ./nix/tests/kubernetes.nix {};
+      in {
         packages = {
           inherit
             hydrui-server
@@ -43,10 +39,10 @@
           default = hydrui-server;
         };
         checks = {
-          format = pkgs.runCommandLocal "check-format" { } ''
+          format = pkgs.runCommandLocal "check-format" {} ''
             cd ${self} && ${pkgs.lib.getExe format} --check && touch $out
           '';
-          helm-lint = pkgs.runCommandLocal "check-helm-lint" { buildInputs = [ pkgs.kubernetes-helm ]; } ''
+          helm-lint = pkgs.runCommandLocal "check-helm-lint" {buildInputs = [pkgs.kubernetes-helm];} ''
             helm lint ${self}/deploy/helm/hydrui && touch $out
           '';
           inherit
@@ -58,8 +54,10 @@
         };
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            nodejs_22
+            ffmpeg
             go
+            gopls
+            nodejs_22
           ];
         };
       }

@@ -2,10 +2,12 @@ import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 
 import { FileMetadata } from "@/api/types";
 import { client } from "@/store/apiStore";
+import { usePreferencesStore } from "@/store/preferencesStore";
 
 import "./index.css";
 
 const OGVViewer = lazy(() => import("./OGVViewer"));
+const HLSViewer = lazy(() => import("./HLSViewer"));
 
 interface VideoViewerProps {
   fileId: number;
@@ -22,7 +24,8 @@ const VideoViewer: React.FC<VideoViewerProps> = ({
 }) => {
   const fileUrl = client.getFileUrl(fileId);
   const [canPlay, setCanPlay] = useState(false);
-  const [useOgv, setUseOgv] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+  const { videoTranscoder } = usePreferencesStore();
 
   useEffect(() => {
     if (
@@ -30,16 +33,16 @@ const VideoViewer: React.FC<VideoViewerProps> = ({
       (fileData.mime !== "video/ogg" && fileData.mime !== "video/webm")
     ) {
       setCanPlay(false);
-      setUseOgv(false);
+      setUseFallback(false);
       return;
     }
     const video = document.createElement("video");
     if (video.canPlayType(fileData.mime) === "") {
       setCanPlay(false);
-      setUseOgv(true);
+      setUseFallback(true);
     } else {
       setCanPlay(true);
-      setUseOgv(false);
+      setUseFallback(false);
     }
   }, [fileData.mime]);
 
@@ -50,32 +53,43 @@ const VideoViewer: React.FC<VideoViewerProps> = ({
   const handleError = useCallback(
     (event: React.SyntheticEvent<HTMLVideoElement>) => {
       if (!canPlay) {
-        setUseOgv(true);
+        setUseFallback(true);
       }
       if (
         event.currentTarget.error?.code ===
         MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
       ) {
-        setUseOgv(true);
+        setUseFallback(true);
       }
     },
     [canPlay],
   );
 
-  // TODO: The ogv fallback doesn't happen when it sometimes should.
-  // Need to debug this on Apple devices in particular, as they seem to throw up
-  // on perfectly valid VP8 and VP9 WebM files.
-  if (useOgv && fileData.size) {
-    return (
-      <Suspense fallback={<div>Loading OGV Viewer...</div>}>
-        <OGVViewer
-          fileUrl={fileUrl}
-          fileSize={fileData.size}
-          autoPlay={autoPlay}
-          loop={loop}
-        />
-      </Suspense>
-    );
+  if (useFallback && fileData.size) {
+    if (videoTranscoder === "ogv") {
+      return (
+        <Suspense fallback={<div>Loading OGV Viewer...</div>}>
+          <OGVViewer
+            fileUrl={fileUrl}
+            fileSize={fileData.size}
+            autoPlay={autoPlay}
+            loop={loop}
+          />
+        </Suspense>
+      );
+    } else {
+      const hlsUrl = new URL(fileUrl, window.location.origin);
+      hlsUrl.searchParams.set("transcode", "hls");
+      return (
+        <Suspense fallback={<div>Starting HLS Transcode...</div>}>
+          <HLSViewer
+            fileUrl={hlsUrl.toString()}
+            autoPlay={autoPlay}
+            loop={loop}
+          />
+        </Suspense>
+      );
+    }
   }
   return (
     <video
