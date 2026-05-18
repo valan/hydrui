@@ -4,36 +4,35 @@
   pixman,
   cairo,
   pango,
-}:
-let
+}: let
   version = builtins.readFile ../../VERSION;
 in
-buildNpmPackage {
-  name = "hydrui-www";
-  inherit version;
-  src = ./../..;
+  buildNpmPackage {
+    name = "hydrui-www";
+    inherit version;
+    src = ./../..;
 
-  VITE_HYDRUI_VERSION = version;
+    VITE_HYDRUI_VERSION = version;
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
+    nativeBuildInputs = [
+      pkg-config
+    ];
 
-  buildInputs = [
-    pixman
-    cairo
-    pango
-  ];
+    buildInputs = [
+      pixman
+      cairo
+      pango
+    ];
 
-  npmDepsHash = "sha256-/tnGgnEAPke34SBTN/F0ZcSTdJPj6NpPsd8yuOwlRKQ=";
+    npmDepsHash = "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=";
 
-  buildPhase = ''
-    npm run --workspaces build
-    npm run --workspace web/hydrui-util pack
-  '';
+    buildPhase = ''
+      npm run --workspaces build
+      npm run --workspace web/hydrui-util pack
+    '';
 
-  installPhase = ''
-    mkdir -p $out/share/hydrui/internal/webdata
-    cp internal/webdata/*.pack $out/share/hydrui/internal/webdata
-  '';
-}
+    installPhase = ''
+      mkdir -p $out/share/hydrui/internal/webdata
+      cp internal/webdata/*.pack $out/share/hydrui/internal/webdata
+    '';
+  }
